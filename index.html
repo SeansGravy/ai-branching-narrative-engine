@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Branching Narrative Engine</title>
+    <title>Branching Narrative Engine • Non-Deterministic</title>
     <style>
         body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #1a1a2e; color: #ddd; }
         .scene { background: #16213e; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
@@ -15,18 +15,19 @@
         .choices button:hover { background: #e94560; }
         .log { margin-top: 20px; font-size: 0.9em; opacity: 0.8; }
         .status { font-size: 0.9em; color: #aaa; }
+        .event { background: #3a1f5c; padding: 10px; border-radius: 6px; margin: 10px 0; font-style: italic; }
     </style>
 </head>
 <body>
-    <h1>🌌 AI Branching Narrative</h1>
-    <div id="status" class="status">Loading story...</div>
+    <h1>🌌 AI Branching Narrative <small style="font-size:0.6em; opacity:0.7;">Non-Deterministic Edition</small></h1>
+    <div id="status" class="status">Loading living story...</div>
     <div id="scene" class="scene"></div>
     <div id="choices" class="choices"></div>
     <div id="log" class="log"></div>
 
     <script>
         let currentScene = "start";
-        let state = { current_scene: "start" };
+        let state = { current_scene: "start", chaos: 0 };
         let story = {
             "start": {
                 "description": "You stand at the threshold of an unknown path. A mysterious device in your hand pulses with possibilities. The air hums with potential.",
@@ -52,17 +53,123 @@
             "end_safe": {
                 "description": "You return to safety, but wonder what you might have discovered. The adventure ends... for now.",
                 "choices": []
+            },
+            // Expanded non-deterministic paths
+            "deep_dive": {
+                "description": "You plunge into swirling visions. Reality fractures around you.",
+                "choices": [
+                    {"text": "Embrace the chaos", "next_scene": "chaos_event", "effects": {"chaos": 2}},
+                    {"text": "Seek a stable thread", "next_scene": "stable_thread", "effects": {"wisdom": 1}}
+                ]
+            },
+            "ally_contact": {
+                "description": "A faint voice answers through the device. It knows your name.",
+                "choices": [
+                    {"text": "Ask for guidance", "next_scene": "guidance_path", "effects": {"connection": 2}},
+                    {"text": "Demand answers about the device", "next_scene": "demand_answers", "effects": {"curiosity": 2}}
+                ]
+            },
+            "chaos_event": {
+                "description": "The world twists unpredictably. Something unexpected happens...",
+                "choices": [
+                    {"text": "Adapt and continue", "next_scene": "random_outcome", "effects": {"chaos": 1}}
+                ]
+            },
+            "stable_thread": {
+                "description": "You find a steady path through the visions. Clarity returns... for now.",
+                "choices": [
+                    {"text": "Press onward", "next_scene": "patterns_follow", "effects": {}}
+                ]
+            },
+            "patterns_follow": {
+                "description": "The patterns lead you to a crossroads of possibilities.",
+                "choices": [
+                    {"text": "Take the left path", "next_scene": "left_path", "effects": {"wisdom": 1}},
+                    {"text": "Take the right path", "next_scene": "right_path", "effects": {"curiosity": 1}}
+                ]
+            },
+            "left_path": {
+                "description": "The left path reveals ancient ruins pulsing with energy.",
+                "choices": [
+                    {"text": "Enter the ruins", "next_scene": "ruins", "effects": {"knowledge": 1}},
+                    {"text": "Circle around", "next_scene": "end_safe", "effects": {}}
+                ]
+            },
+            "right_path": {
+                "description": "The right path opens into a living forest that seems to watch you.",
+                "choices": [
+                    {"text": "Step into the forest", "next_scene": "forest", "effects": {"chaos": 1}},
+                    {"text": "Retreat", "next_scene": "end_safe", "effects": {}}
+                ]
+            },
+            "ruins": {
+                "description": "Inside the ruins, inscriptions glow. They respond to your presence.",
+                "choices": [
+                    {"text": "Touch the inscriptions", "next_scene": "random_outcome", "effects": {"knowledge": 2}},
+                    {"text": "Study them from a distance", "next_scene": "stable_thread", "effects": {"wisdom": 1}}
+                ]
+            },
+            "forest": {
+                "description": "The forest whispers secrets and warnings. The path shifts behind you.",
+                "choices": [
+                    {"text": "Follow the whispers", "next_scene": "random_outcome", "effects": {"chaos": 2}},
+                    {"text": "Find your own way", "next_scene": "stable_thread", "effects": {"wisdom": 1}}
+                ]
+            },
+            "guidance_path": {
+                "description": "The ally offers cryptic but useful advice about the device.",
+                "choices": [
+                    {"text": "Follow the advice", "next_scene": "patterns_follow", "effects": {"connection": 1}},
+                    {"text": "Question the advice", "next_scene": "demand_answers", "effects": {"curiosity": 1}}
+                ]
+            },
+            "demand_answers": {
+                "description": "The voice laughs softly. 'Some answers must be earned.'",
+                "choices": [
+                    {"text": "Insist", "next_scene": "chaos_event", "effects": {"chaos": 1}},
+                    {"text": "Accept the mystery", "next_scene": "stable_thread", "effects": {"wisdom": 1}}
+                ]
+            },
+            "random_outcome": {
+                "description": "Fate intervenes in unexpected ways...",
+                "choices": [
+                    {"text": "Continue despite the twist", "next_scene": "end_safe", "effects": {}}
+                ]
             }
-            // Add more scenes here or make dynamic
         };
 
+        // Non-deterministic helper: Random event or variation
+        function triggerRandomEvent() {
+            const events = [
+                "A sudden gust of wind carries distant voices.",
+                "The device pulses with an unexpected warmth.",
+                "Shadows flicker at the edge of your vision.",
+                "You feel a brief sense of déjà vu.",
+                "Something unseen brushes past you."
+            ];
+            return events[Math.floor(Math.random() * events.length)];
+        }
+
         function render() {
-            const sceneData = story[currentScene] || {description: "The story has ended.", choices: []};
-            document.getElementById("scene").innerHTML = `<p>${sceneData.description}</p>`;
+            let sceneData = story[currentScene] || {description: "The story has ended in unexpected ways.", choices: []};
+            
+            // Occasionally inject a random event flavor for non-determinism
+            let displayDesc = sceneData.description;
+            if (Math.random() < 0.3 && currentScene !== "start" && currentScene !== "end_safe") {
+                displayDesc += `<div class="event">🌬️ ${triggerRandomEvent()}</div>`;
+            }
+            
+            document.getElementById("scene").innerHTML = `<p>${displayDesc}</p>`;
             
             const choicesDiv = document.getElementById("choices");
             choicesDiv.innerHTML = "";
-            sceneData.choices.forEach((choice, index) => {
+            
+            if (sceneData.choices.length === 0) {
+                choicesDiv.innerHTML = "<p><strong>The path concludes... for now. Refresh to begin again.</strong></p>";
+                return;
+            }
+            
+            sceneData.choices.forEach((choice) => {
                 const btn = document.createElement("button");
                 btn.textContent = choice.text;
                 btn.onclick = () => makeChoice(choice);
@@ -77,7 +184,17 @@
             for (let key in choice.effects) {
                 state[key] = (state[key] || 0) + choice.effects[key];
             }
-            currentScene = choice.next_scene;
+            
+            // Non-deterministic twist: sometimes random outcome overrides
+            let next = choice.next_scene;
+            if (Math.random() < 0.15 && state.chaos > 1) {  // Higher chaos = more unpredictability
+                const randomKeys = Object.keys(story).filter(k => k !== "start" && k !== "end_safe");
+                next = randomKeys[Math.floor(Math.random() * randomKeys.length)];
+                const log = document.getElementById("log");
+                log.innerHTML += `<p class="event">⚡ Fate intervenes! You end up somewhere unexpected...</p>`;
+            }
+            
+            currentScene = next;
             state.current_scene = currentScene;
             
             // Log
@@ -85,11 +202,7 @@
             log.innerHTML += `<p>You chose: ${choice.text}</p>`;
             log.scrollTop = log.scrollHeight;
             
-            if (story[currentScene] && story[currentScene].choices.length === 0) {
-                document.getElementById("choices").innerHTML = "<p><strong>The story concludes.</strong></p>";
-            } else {
-                render();
-            }
+            render();
         }
 
         // Start
